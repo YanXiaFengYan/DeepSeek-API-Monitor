@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeepSeek 用量监控</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ───────────────────────────────────── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #21262d;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #f0f6fc;
+      letter-spacing: -0.3px;
+    }
+    header .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #3fb950;
+      box-shadow: 0 0 6px #3fb95088;
+    }
+    header .dot.error { background: #f85149; box-shadow: 0 0 6px #f8514988; }
+    header .refresh {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    /* ── Stats Grid ───────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #8b949e;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 26px;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+    .stat-card .value.balance { color: #3fb950; }
+    .stat-card .sub {
+      font-size: 12px;
+      color: #484f58;
+      margin-top: 4px;
+    }
+
+    /* ── Section ──────────────────────────────────── */
+    section { margin-bottom: 28px; }
+    section h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    /* ── Model Table ──────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      color: #8b949e;
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #21262d;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #21262d;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+    td:first-child { font-weight: 600; color: #f0f6fc; }
+    tr:hover td { background: #1c2128; }
+
+    /* ── Chart ────────────────────────────────────── */
+    .chart-wrap {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .chart-wrap canvas { max-height: 300px; }
+
+    /* ── Footer ───────────────────────────────────── */
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid #21262d;
+      font-size: 12px;
+      color: #484f58;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Simulated Badge ──────────────────────────── */
+    .badge-sim {
+      display: inline-block;
+      background: #1c2128;
+      color: #d2991d;
+      border: 1px solid #3d3722;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>🧠 DeepSeek 用量监控</h1>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">加载中...</span>
+      <span class="refresh">· 60s</span>
+    </div>
+  </header>
+
+  <!-- 统计卡片 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">💰 账户余额</div>
+      <div class="value balance" id="balance">--</div>
+      <div class="sub" id="balanceSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">📅 本月消费 <span class="badge-sim">模拟</span></div>
+      <div class="value" id="monthCost">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">📊 API 请求次数 <span class="badge-sim">模拟</span></div>
+      <div class="value" id="totalRequests">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🪙 Token 总量 <span class="badge-sim">模拟</span></div>
+      <div class="value" id="totalTokens">--</div>
+    </div>
+  </div>
+
+  <!-- 模型明细 -->
+  <section>
+    <h2>📋 各模型消耗明细 <span class="badge-sim">模拟</span></h2>
+    <table>
+      <thead>
+        <tr><th>模型</th><th>Token 数</th><th>花费 ($)</th></tr>
+      </thead>
+      <tbody id="modelTable"></tbody>
+    </table>
+  </section>
+
+  <!-- 近7天图表 -->
+  <section>
+    <h2>📈 近 7 天 Token 消耗 <span class="badge-sim">模拟</span></h2>
+    <div class="chart-wrap">
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <span id="updatedAt"></span>
+    <span>数据每 60 秒自动刷新</span>
+  </footer>
+
+</div>
+
+<script>
+let chart = null;
+
+function formatNumber(n) {
+  if (n == null) return '--';
+  return Number(n).toLocaleString('en-US');
+}
+
+function formatMoney(n) {
+  if (n == null) return '--';
+  return '$' + Number(n).toFixed(2);
+}
+
+function formatTokens(n) {
+  if (n == null) return '--';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+  return String(n);
+}
+
+async function fetchStats() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+
+  try {
+    const resp = await fetch('/api/stats');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    // 状态指示
+    if (data.balanceError) {
+      dot.className = 'dot error';
+      text.textContent = '余额 API 异常';
+    } else {
+      dot.className = 'dot';
+      text.textContent = '在线';
+    }
+
+    // 余额
+    if (data.balance && data.balance.balance_infos && data.balance.balance_infos.length > 0) {
+      const info = data.balance.balance_infos[0];
+      document.getElementById('balance').textContent =
+        info.currency + ' ' + parseFloat(info.total_balance).toFixed(2);
+      document.getElementById('balanceSub').textContent =
+        '赠送 ' + info.granted_balance + ' | 充值 ' + info.topped_up_balance;
+    } else if (data.balance && data.balance.is_available === false) {
+      document.getElementById('balance').textContent = '不可用';
+      document.getElementById('balanceSub').textContent = '';
+    } else {
+      document.getElementById('balance').textContent = '获取失败';
+      document.getElementById('balanceSub').textContent = data.balanceError || '';
+    }
+
+    // 用量（模拟）
+    const u = data.usage;
+    document.getElementById('monthCost').textContent = formatMoney(u.monthCost);
+    document.getElementById('totalRequests').textContent = formatNumber(u.totalRequests);
+    document.getElementById('totalTokens').textContent = formatTokens(u.totalTokens);
+
+    // 模型明细表
+    const tbody = document.getElementById('modelTable');
+    tbody.innerHTML = u.models.map(m =>
+      `<tr>
+        <td>${m.name}</td>
+        <td>${formatNumber(m.tokens)}</td>
+        <td>${formatMoney(m.cost)}</td>
+      </tr>`
+    ).join('');
+
+    // 柱状图
+    renderChart(u.daily);
+
+    // 更新时间
+    document.getElementById('updatedAt').textContent =
+      '更新于 ' + new Date(data.updatedAt).toLocaleString('zh-CN');
+
+  } catch (err) {
+    dot.className = 'dot error';
+    text.textContent = '连接失败';
+    console.error(err);
+  }
+}
+
+function renderChart(daily) {
+  const ctx = document.getElementById('dailyChart').getContext('2d');
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: daily.map(d => d.date),
+      datasets: [{
+        label: 'Token 消耗',
+        data: daily.map(d => d.tokens),
+        backgroundColor: 'rgba(88, 166, 255, 0.45)',
+        borderColor: 'rgba(88, 166, 255, 0.8)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          titleColor: '#f0f6fc',
+          bodyColor: '#c9d1d9',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => formatTokens(ctx.raw) + ' tokens',
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8b949e', font: { size: 12 } },
+          grid: { color: '#21262d' },
+        },
+        y: {
+          ticks: {
+            color: '#8b949e',
+            font: { size: 11 },
+            callback: v => (v / 1000).toFixed(0) + 'K',
+          },
+          grid: { color: '#21262d' },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// 初次加载 + 每 60 秒刷新
+fetchStats();
+setInterval(fetchStats, 60_000);
+</script>
+</body>
+</html>

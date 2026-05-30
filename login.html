@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeepSeek Monitor - 登录</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      user-select: none;
+    }
+    .login-box {
+      width: 100%; height: 100%;
+      background: rgba(13,17,23,0.85);
+      border-radius: 16px;
+      border: 1px solid rgba(48,54,61,0.5);
+      backdrop-filter: blur(14px);
+      padding: 24px 20px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .login-box:hover { border-color: rgba(88,166,255,0.3); }
+
+    .login-header {
+      -webkit-app-region: drag;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .login-header img { width: 24px; height: 24px; }
+    .login-header span { font-size: 14px; font-weight: 600; color: #c9d1d9; }
+
+    .login-title { font-size: 16px; font-weight: 700; color: #f0f6fc; text-align: center; }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 10px; color: #8b949e; letter-spacing: 0.5px; }
+    .field input {
+      background: rgba(22,27,34,0.8); border: 1px solid rgba(48,54,61,0.6);
+      border-radius: 6px; padding: 8px 10px;
+      color: #f0f6fc; font-size: 13px;
+      font-family: 'SF Mono','Fira Code','Consolas',monospace;
+      outline: none; transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: #4D6BFE; }
+    .field input::placeholder { color: #30363d; font-family: sans-serif; }
+
+    .btn-login {
+      width: 100%; padding: 10px;
+      background: #4D6BFE; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-login:hover { opacity: 0.85; }
+    .btn-login:disabled { opacity: 0.4; cursor: default; }
+
+    .error-msg { font-size: 11px; color: #f85149; text-align: center; min-height: 16px; }
+    .hint { font-size: 9px; color: #484f58; text-align: center; }
+  </style>
+</head>
+<body>
+<div class="login-box">
+  <div class="login-header">
+    <img src="deepseek-logo.ico" alt="DS">
+    <span>DeepSeek Monitor</span>
+  </div>
+  <div class="login-title">🔐 登录</div>
+
+  <div class="field">
+    <label>DeepSeek API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxx" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>手机号（DeepSeek 平台）</label>
+    <input type="text" id="phone" placeholder="手机号" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>密码（DeepSeek 平台）</label>
+    <input type="password" id="password" placeholder="登录密码" autocomplete="off">
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <button class="btn-login" id="btnLogin">登 录</button>
+  <div class="hint">手机号和密码用于抓取真实用量（可选，不填则用量显示 --）</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+$('btnLogin').addEventListener('click', async () => {
+  const apiKey = $('apiKey').value.trim();
+  const phone = $('phone').value.trim();
+  const password = $('password').value.trim();
+
+  if (!apiKey) { $('errorMsg').textContent = '请输入 API Key'; return; }
+
+  $('btnLogin').disabled = true;
+  $('btnLogin').textContent = '验证中...';
+  $('errorMsg').textContent = '';
+
+  // 验证 API Key（查余额）
+  const ok = await window.api.verifyKey(apiKey);
+  if (!ok) {
+    $('errorMsg').textContent = 'API Key 无效，请检查';
+    $('btnLogin').disabled = false;
+    $('btnLogin').textContent = '登 录';
+    return;
+  }
+
+  // 保存并进入主界面
+  await window.api.saveLogin({ apiKey, phone, password });
+});
+</script>
+</body>
+</html>

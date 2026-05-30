@@ -1,0 +1,42 @@
+{
+  "name": "deepseek-monitor",
+  "version": "3.0.0",
+  "description": "DeepSeek API 用量监控桌面挂件",
+  "author": "YanXiaFengYan",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js",
+    "shortcut": "node create-shortcut.js",
+    "build": "electron-builder --win portable",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.deepseek.monitor",
+    "productName": "DeepSeek Monitor",
+    "files": [
+      "main.js", "preload.js", "scraper.js",
+      "widget.html", "login.html",
+      "public/**", "deepseek-logo.ico",
+      "node_modules/**"
+    ],
+    "win": {
+      "target": ["portable"]
+    },
+    "portable": {
+      "artifactName": "DeepSeek-Monitor.exe"
+    },
+    "nsis": {
+      "artifactName": "DeepSeek-Monitor-Setup.exe"
+    }
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "puppeteer": "^22.0.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
