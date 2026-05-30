@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/icon.png" width="100" alt="DSM Logo"/>
+<img src="icon.png" width="100" alt="DSM Logo"/>
 
 # DeepSeek API Monitor
 
@@ -14,7 +14,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-![主界面](assets/dashboard.png)
+![主界面](dashboard.png)
 
 </div>
 
@@ -37,11 +37,11 @@
 
 **主界面**
 
-![主界面](assets/dashboard.png)
+![主界面](dashboard.png)
 
 **登录界面**
 
-![登录界面](assets/login_censored.png)
+![登录界面](login_censored.png)
 
 ---
 
